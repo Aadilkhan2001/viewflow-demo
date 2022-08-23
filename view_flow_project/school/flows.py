@@ -2,40 +2,54 @@ from viewflow.base import Flow,this
 from viewflow import flow
 from .models import AdmissionProcess
 from viewflow.flow.views import UpdateProcessView ,CreateProcessView
+from viewflow.decorators import flow_start_func
 
+
+
+@flow_start_func
+def start_flow(activation,**kwargs):
+    activation.prepare()
+    activation.process.student = kwargs.pop('student')
+    activation.process.status_admission = kwargs.pop('status_admission',False)
+    activation.done()
+    return activation
 
 class SchoolFlow(Flow):
     process_class = AdmissionProcess
 
-    start= (flow.Start(
-        CreateProcessView ,
-        fields = ['status']
-    ).Permission(
-        auto_create=True
+    start= (flow.StartFunction(
+        start_flow ,
     ).Next(this.check_status))
 
-    check_status = (    
-        flow.Handler(
-            flow.If(
-            lambda activation : activation.process.is_status() == False
+    check_status =( flow.If(
+            lambda activation : activation.process.status_admission
         ).Then(
-            this.update_status
+            this.send
+            
         ).Else(
-            this.notify
-        )
-        )
-    )
+            this.update_status
+        ))
+    
 
     update_status = (
         flow.View(
             UpdateProcessView,
-            fields=['status']
+            fields=['status_admission']
         ).Permission(
             auto_create=True
-        ).Next(this.end)
+        ).Next(this.send)
+    )
+
+    send =(
+        flow.Handler(
+            this.notify
+        ).Next(
+            this.end
+        )
+
     )
 
     end = flow.End()
 
-    def notify(activation):
+    def notify(self,activation):
         print("Admission accepted!!")
