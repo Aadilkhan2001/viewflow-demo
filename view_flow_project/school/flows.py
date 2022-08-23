@@ -3,7 +3,7 @@ from viewflow import flow
 from .models import AdmissionProcess
 from viewflow.flow.views import UpdateProcessView ,CreateProcessView
 from viewflow.decorators import flow_start_func
-
+from viewflow import admin
 
 
 @flow_start_func

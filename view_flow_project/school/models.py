@@ -10,11 +10,11 @@ class Student(models.Model):
 
 
 class AdmissionProcess(Process):
-    student = models.ForeignKey(Student,on_delete=models.CASCADE)
+    student = models.OneToOneField(Student,on_delete=models.CASCADE)
     status_admission = models.BooleanField(default=False)
 
     def is_status(self):
         if self.status_admission == True:
             return True
-        else:
+        else:   
             return False
