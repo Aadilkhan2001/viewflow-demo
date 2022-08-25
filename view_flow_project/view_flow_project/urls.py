@@ -12,6 +12,7 @@ router.register(r'',StudentViewSet)
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('school/',include(FlowViewSet(SchoolFlow).urls)),  
-    path('workflow/',include(frontend_urls)),
+    path('',include(frontend_urls)),
     path('data/',include(router.urls))
 ]
+    
