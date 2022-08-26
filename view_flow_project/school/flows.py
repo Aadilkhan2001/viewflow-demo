@@ -8,6 +8,8 @@ import django_rq
 from school.tasks import accepted, rejected
 
 
+#starting process programattically  using startflow function 
+#This function used in views.py to start a process on certain action
 @flow_start_func
 def start_flow(activation,**kwargs):
     activation.prepare()
@@ -16,15 +18,19 @@ def start_flow(activation,**kwargs):
     activation.done()
     return activation
 
+
+#school flow is main flow of admission process 
 @frontend.register
 class SchoolFlow(Flow):
+
     process_class = AdmissionProcess
 
+    #starting the flow
     start= (flow.StartFunction(
         start_flow ,
     ).Next(this.update_status))
 
-
+    #first node is update status
     update_status = (
         flow.View(
             UpdateProcessView,
@@ -34,6 +40,8 @@ class SchoolFlow(Flow):
         ).Next(this.check_status)
     )
 
+    #check status is node that checks admission status after update by authority 
+    #after that calling function accoridingly
     check_status =( flow.If(
             lambda activation : activation.process.status_admission
         ).Then(
@@ -44,8 +52,7 @@ class SchoolFlow(Flow):
         ))
     
 
-  
-
+    #calling a notify method 
     send =(
         flow.Handler(
             this.notify
@@ -54,16 +61,22 @@ class SchoolFlow(Flow):
         )
     )
 
+    #calling notify_rejected method 
     send_notapproved = (flow.Handler(
         this.notify_rejected
     ).Next(this.end))
 
+    #ending flow node
     end = flow.End()
 
+    #view flow handler which adding a task into django rq queue
     def notify(self,activation):
         queue = django_rq.get_queue('student_notify')
-        queue.enqueue(accepted)
+        email = activation.process.student.email
+        queue.enqueue(accepted,email=email)
     
+    #view flow handler which adding a task into django rq queue
     def notify_rejected(self,activation):
         queue = django_rq.get_queue('student_notify')
-        queue.enqueue(rejected)
+        email = activation.process.student.email
+        queue.enqueue(rejected,email=email)
